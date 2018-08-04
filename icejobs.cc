@@ -26,7 +26,7 @@
 #include <icecc/comm.h>
 
 #define TMP_CACHE_FILE "/tmp/.icejobs"
-#define TMP_CACHE_SECONDS 2*60
+#define TMP_CACHE_SECONDS 5*60
 
 using host_stats_map = std::unordered_map<std::string, std::string>;
 
