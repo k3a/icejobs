@@ -11,6 +11,7 @@
  */
 
 #include <functional>
+#include <inttypes.h>
 #include <poll.h>
 #include <set>
 #include <sstream>
@@ -23,6 +24,9 @@
 #include <vector>
 
 #include <icecc/comm.h>
+
+#define TMP_CACHE_FILE "/tmp/.icejobs"
+#define TMP_CACHE_SECONDS 2*60
 
 using host_stats_map = std::unordered_map<std::string, std::string>;
 
@@ -169,13 +173,33 @@ void icecc_maxjobs_finder::handle_host_stats(MonStatsMsg &m) {
 
 void icecc_maxjobs_finder::print_jobs_and_quit() {
 	printf("%d\n", total_jobs_available);
+
+  FILE* fp = fopen(TMP_CACHE_FILE, "wb");
+	if (fp) {
+		fprintf(fp, "%" PRIu64 " %d", (unsigned long long)time(NULL), total_jobs_available);
+		fclose(fp);
+	}
+
 	exit(0);
 }
 
 int main() {
-	icecc_maxjobs_finder finder;
+	// try cache first
+	FILE* fp = fopen(TMP_CACHE_FILE, "rb");
+	if (fp) {
+		unsigned long long ts; 
+		int num, ret;
 
-	// fprintf(stderr, "Waiting for scheduler...\n");
+		ret = fscanf(fp, "%" PRIu64 " %d", &ts, &num);
+		fclose(fp);
+
+		if (ret == 2 && (time(NULL)-ts) < TMP_CACHE_SECONDS) {
+			printf("%d\n", num);
+			return 0;
+		}
+	}
+
+	icecc_maxjobs_finder finder;
 
 	finder.check_scheduler();
 
